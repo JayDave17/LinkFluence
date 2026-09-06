@@ -115,7 +115,14 @@ with **MongoDB Atlas** behind both.
 
 Build and runtime settings live in [`backend/railway.json`](backend/railway.json)
 and [`backend/.python-version`](backend/.python-version) — no dashboard start
-command needed.
+command needed. Note that Railway resolves `railway.json` *relative to the root
+directory*, so it is only picked up once step 2 is done. If the deploy logs still
+do not show the Gunicorn command, paste it into **Settings → Deploy → Custom Start
+Command** instead:
+
+```
+gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+```
 
 ### 3. Frontend → Vercel
 
