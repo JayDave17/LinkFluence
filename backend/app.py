@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -35,16 +37,26 @@ app.register_blueprint(applications_bp, url_prefix='/api/applications')
 def hello():
     return jsonify({"message": "Linkfluence Backend Running", "status": "success"})
 
-# Auto-seed database if empty (for automated deployments)
-try:
-    from seed_db import seed_data
-    print("🌱 Checking database state...")
-    seed_data()
-except Exception as e:
-    print(f"⚠️ Auto-seeding skipped: {e}")
+@app.route('/health')
+def health():
+    # Intentionally does not touch MongoDB. This is the platform liveness probe,
+    # and a slow or unreachable Atlas cluster must not make the container look dead.
+    return jsonify({"status": "ok"}), 200
+
+# One-shot seeding for fresh deployments. Off by default: this runs on every
+# Gunicorn worker boot, so set SEED_ON_STARTUP=true for a single deploy and then
+# turn it back off.
+if os.getenv("SEED_ON_STARTUP", "false").lower() == "true":
+    try:
+        from seed_db import seed_data
+        print("🌱 Seeding database (SEED_ON_STARTUP=true)...")
+        seed_data()
+    except Exception as e:
+        print(f"⚠️ Auto-seeding skipped: {e}")
 
 if __name__ == '__main__':
-    print("Starting Linkfluence Backend on http://0.0.0.0:5000")
+    port = int(os.getenv("PORT", 5000))
+    print(f"Starting Linkfluence Backend on http://0.0.0.0:{port}")
     print("Registered routes:", app.url_map)
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=port, host='0.0.0.0')
 

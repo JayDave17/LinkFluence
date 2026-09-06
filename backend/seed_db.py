@@ -5,44 +5,20 @@ Run: python seed_db.py
 This script seeds the database with sample data for testing.
 """
 
-import os
-from pymongo import MongoClient
-from pymongo.server_api import ServerApi
 from werkzeug.security import generate_password_hash
 from datetime import datetime
-import certifi
 from dotenv import load_dotenv
-import sys
+
+from database import get_db
 
 load_dotenv()
 
-def get_db_connection():
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/linkfluence")
-    
-    try:
-        if "mongodb+srv" in MONGO_URI:
-            print("🔌 Connecting to Atlas (Secure Mode)...")
-            client = MongoClient(MONGO_URI, 
-                               tlsCAFile=certifi.where(),
-                               server_api=ServerApi('1'))
-        else:
-            print("🔌 Connecting to Local DB...")
-            client = MongoClient(MONGO_URI)
-            
-        client.admin.command('ping')
-        print("✅ Connected to MongoDB!")
-        
-        db = client.get_database('Linkfluence')
-        return db
-        
-    except Exception as e:
-        print(f"❌ Connection Failed: {e}")
-        sys.exit(1)
-
 def seed_data():
     print("🚀 Starting Database Seeding...")
-    
-    db = get_db_connection()
+
+    # Reuse the app's connection helper so the seeder and the API always agree
+    # on which database they are pointed at (both resolve it from MONGO_URI).
+    db = get_db()
     
     # Sample Users
     users = [
